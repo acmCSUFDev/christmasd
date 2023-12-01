@@ -1,0 +1,6 @@
+{
+  "version": "3",
+  "remote": {
+    "https://deno.land/x/event@2.0.1/mod.ts": "5b36cd679785638b59228ac42876c628e54efc50ae0015ba1589b9e8f12969b4"
+  }
+}

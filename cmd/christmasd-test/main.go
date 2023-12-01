@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"image"
+	"io/fs"
 	"log"
 	"log/slog"
 	"net/http"
@@ -12,7 +13,6 @@ import (
 	"os/signal"
 
 	"dev.acmcsuf.com/christmas/lib/csvutil"
-	"dev.acmcsuf.com/christmasd"
 	"github.com/go-chi/chi/v5"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
@@ -20,9 +20,10 @@ import (
 	"libdb.so/hserve"
 )
 
-//go:generate deno bundle frontend/script.ts frontend/script.js
+//go:generate deno bundle frontend/script/main.ts frontend/script.js
 //go:embed frontend
 var frontendFS embed.FS
+var frontendFilesFS, _ = fs.Sub(frontendFS, "frontend")
 
 var (
 	httpAddr     = ":9001"
@@ -39,8 +40,6 @@ func init() {
 }
 
 const frameRate = 20
-
-var serverConfig = christmasd.Config{}
 
 func main() {
 	log.SetFlags(0)
@@ -74,11 +73,19 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		return fmt.Errorf("failed to unmarshal CSV file %q: %v", ledPointsCSV, err)
 	}
 
-	manager := newSessionManager(logger, ledCoords)
+	h := &sessionsHandler{
+		ledCoords: ledCoords,
+		logger:    logger,
+	}
 
 	r := chi.NewRouter()
-	r.Mount("/sessions", manager)
-	r.Mount("/", http.FileServer(http.FS(frontendFS)))
+	r.Get("/session", h.handleNewSession)
+	r.Get("/ws/{token}", h.handleSessionWS)
+	r.Mount("/", http.FileServer(http.FS(frontendFilesFS)))
+
+	logger.Info(
+		"starting HTTP server",
+		"addr", httpAddr)
 
 	return hserve.ListenAndServe(ctx, httpAddr, r)
 }

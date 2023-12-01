@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"net/http"
 
 	"dev.acmcsuf.com/christmas/lib/xcolor"
 )
@@ -59,8 +60,14 @@ type sseEvent struct {
 	Data any
 }
 
-func writeSSE(w io.Writer, ev sseEvent) {
+type writeFlusher interface {
+	io.Writer
+	http.Flusher
+}
+
+func writeSSE(w writeFlusher, ev sseEvent) {
 	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", ev.Type, ev.Data)
+	w.Flush()
 }
 
 func controllerEventToSSE(event ControllerEvent) sseEvent {

@@ -1,0 +1,36 @@
+html,
+body {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+body * {
+  box-sizing: border-box;
+}
+
+#tree,
+#console {
+  background-color: rgb(61, 61, 58);
+}
+
+#tree {
+  margin: auto;
+  height: auto;
+  max-width: 100%;
+}
+
+#console {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  max-height: 200px;
+}
+
+.ws-link a {
+  border-bottom: 1px dashed gray;
+}
