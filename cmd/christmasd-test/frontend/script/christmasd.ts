@@ -12,10 +12,14 @@ export type FrameEvent = {
   led_colors: RGB[];
 };
 
+export type GoingAwayEvent = {
+  reason: string;
+};
+
 export type SSEEvents = {
   init: [InitEvent];
-  error: [ErrorEvent];
   frame: [FrameEvent];
+  going_away: [GoingAwayEvent];
 };
 
 export class ControllerSession extends event.EventEmitter<SSEEvents> {
@@ -26,5 +30,6 @@ export class ControllerSession extends event.EventEmitter<SSEEvents> {
     this.sse = new EventSource("/session");
     this.sse.addEventListener("init", (ev) => this.emit("init", JSON.parse(ev.data)));
     this.sse.addEventListener("frame", (ev) => this.emit("frame", JSON.parse(ev.data)));
+    this.sse.addEventListener("going_away", (ev) => this.emit("going_away", JSON.parse(ev.data)));
   }
 }

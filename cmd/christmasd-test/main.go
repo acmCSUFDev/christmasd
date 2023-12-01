@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"encoding/csv"
 	"fmt"
 	"image"
 	"io/fs"
@@ -11,9 +12,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"time"
 
 	"dev.acmcsuf.com/christmas/lib/csvutil"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/pflag"
@@ -26,15 +29,19 @@ var frontendFS embed.FS
 var frontendFilesFS, _ = fs.Sub(frontendFS, "frontend")
 
 var (
-	httpAddr     = ":9001"
-	ledPointsCSV = "led-points.csv"
-	canvasPPI    = 72.0
-	verbose      = false
+	httpAddr      = ":9001"
+	ledPointsCSV  = "led-points.csv"
+	maxSessions   = 200
+	maxSessionTTL = 15 * time.Minute
+	canvasPPI     = 72.0
+	verbose       = false
 )
 
 func init() {
 	pflag.StringVarP(&httpAddr, "http-addr", "a", httpAddr, "HTTP server address")
 	pflag.StringVar(&ledPointsCSV, "led-points", ledPointsCSV, "CSV file of LED points")
+	pflag.IntVar(&maxSessions, "max-sessions", maxSessions, "maximum number of sessions")
+	pflag.DurationVar(&maxSessionTTL, "max-session-ttl", maxSessionTTL, "maximum session TTL")
 	pflag.Float64Var(&canvasPPI, "canvas-ppi", canvasPPI, "canvas PPI")
 	pflag.BoolVarP(&verbose, "verbose", "v", verbose, "verbose logging")
 }
@@ -79,8 +86,26 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	r := chi.NewRouter()
-	r.Get("/session", h.handleNewSession)
-	r.Get("/ws/{token}", h.handleSessionWS)
+	r.Use(middleware.RealIP)
+
+	r.Get("/led-points.csv", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/csv")
+		w.Header().Set("Content-Disposition", "attachment; filename=led-points.csv")
+
+		csvw := csv.NewWriter(w)
+		csvutil.Marshal(csvw, ledCoords)
+	})
+
+	r.Group(func(r chi.Router) {
+		// Combine this with maxSessionTTL to mitigate DoS attacks.
+		// In the future, we'd want to delay reconnects as well by using a more
+		// sophisticated rate limiter.
+		r.Use(middleware.Throttle(maxSessions))
+
+		r.Get("/session", h.handleNewSession)
+		r.Get("/ws/{token}", h.handleSessionWS)
+	})
+
 	r.Mount("/", http.FileServer(http.FS(frontendFilesFS)))
 
 	logger.Info(

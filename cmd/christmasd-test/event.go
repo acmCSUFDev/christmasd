@@ -20,9 +20,9 @@ type ControllerEvent interface {
 type ControllerEventType string
 
 const (
-	ControllerEventTypeInit  ControllerEventType = "init"
-	ControllerEventTypeError ControllerEventType = "error"
-	ControllerEventTypeFrame ControllerEventType = "frame"
+	ControllerEventTypeInit      ControllerEventType = "init"
+	ControllerEventTypeFrame     ControllerEventType = "frame"
+	ControllerEventTypeGoingAway ControllerEventType = "going_away"
 )
 
 // ControllerInit is the init message sent to the controller.
@@ -35,16 +35,6 @@ func (ControllerInit) Type() ControllerEventType {
 	return ControllerEventTypeInit
 }
 
-// ControllerError is the error message sent to the controller.
-// It contains the error message.
-type ControllerError struct {
-	Message string `json:"message"`
-}
-
-func (ControllerError) Type() ControllerEventType {
-	return ControllerEventTypeError
-}
-
 // ControllerFrame is the frame message sent to the controller.
 // It contains the frame data.
 type ControllerFrame struct {
@@ -53,6 +43,16 @@ type ControllerFrame struct {
 
 func (ControllerFrame) Type() ControllerEventType {
 	return ControllerEventTypeFrame
+}
+
+// ControllerGoingAway is the going_away message sent to the controller.
+// It contains the reason for the going away.
+type ControllerGoingAway struct {
+	Reason string `json:"reason"`
+}
+
+func (ControllerGoingAway) Type() ControllerEventType {
+	return ControllerEventTypeGoingAway
 }
 
 type sseEvent struct {
@@ -70,7 +70,7 @@ func writeSSE(w writeFlusher, ev sseEvent) {
 	w.Flush()
 }
 
-func controllerEventToSSE(event ControllerEvent) sseEvent {
+func controllerEventSSE(event ControllerEvent) sseEvent {
 	b, err := json.Marshal(event)
 	if err != nil {
 		panic(err)

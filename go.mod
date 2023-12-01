@@ -5,7 +5,6 @@ go 1.21.4
 require (
 	dev.acmcsuf.com/christmas v0.0.0-20231201015142-6c69b334c883
 	github.com/go-chi/chi/v5 v5.0.10
-	github.com/go-chi/httplog/v2 v2.0.7
 	github.com/gobwas/ws v1.3.1
 	github.com/gofrs/uuid/v5 v5.0.0
 	github.com/google/go-cmp v0.5.8

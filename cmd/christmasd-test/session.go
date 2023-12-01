@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"image"
 	"log/slog"
 	"net/http"
 	"sync"
+	"sync/atomic"
 
 	"dev.acmcsuf.com/christmas/lib/leddraw"
 	"dev.acmcsuf.com/christmasd"
@@ -33,30 +35,35 @@ func (m *sessionsHandler) handleNewSession(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		m.logger.Error(
 			"failed to create LED canvas",
+			"addr", r.RemoteAddr,
 			"error", err)
 
 		http.Error(w, "failed to create LED canvas", http.StatusInternalServerError)
 		return
 	}
 
+	ctx, cancel := context.WithTimeout(r.Context(), maxSessionTTL)
+	defer cancel()
+
 	session := &sessionInstance{
 		frame:  make(chan struct{}, 1),
 		canvas: canvas,
 		buffer: make(leddraw.LEDStrip, len(canvas.LEDs())),
-		rctx:   r.Context(),
+		rctx:   ctx,
 	}
 
 	token := m.addSession(session)
 
 	m.logger.Info(
-		"new session created",
+		"new session has been created",
+		"addr", r.RemoteAddr,
 		"token", token)
 
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
-	init := controllerEventToSSE(ControllerInit{
+	init := controllerEventSSE(ControllerInit{
 		LEDCoords:    m.ledCoords,
 		SessionToken: token,
 	})
@@ -65,17 +72,29 @@ func (m *sessionsHandler) handleNewSession(w http.ResponseWriter, r *http.Reques
 frameLoop:
 	for {
 		select {
-		case <-r.Context().Done():
+		case <-ctx.Done():
+			err := ctx.Err()
+			var reason string
+			switch {
+			case errors.Is(err, context.Canceled):
+				reason = "client closed connection"
+			case errors.Is(err, context.DeadlineExceeded):
+				reason = "session timed out, please reconnect"
+			}
+			writeSSE(wflush, controllerEventSSE(ControllerGoingAway{
+				Reason: reason,
+			}))
 			break frameLoop
+
 		case <-session.frame:
 			session.canvasMu.Lock()
-			frame := controllerEventToSSE(ControllerFrame{
+			frame := controllerEventSSE(ControllerFrame{
 				LEDColors: session.canvas.LEDs(),
 			})
 			session.canvasMu.Unlock()
 			writeSSE(wflush, frame)
 
-			m.logger.Info(
+			m.logger.Debug(
 				"session frame sent",
 				"token", token)
 		}
@@ -83,7 +102,9 @@ frameLoop:
 
 	m.logger.Info(
 		"session has been closed",
-		"token", token)
+		"addr", r.RemoteAddr,
+		"token", token,
+		"timedOut", errors.Is(ctx.Err(), context.DeadlineExceeded))
 }
 
 func (m *sessionsHandler) handleSessionWS(w http.ResponseWriter, r *http.Request) {
@@ -94,6 +115,12 @@ func (m *sessionsHandler) handleSessionWS(w http.ResponseWriter, r *http.Request
 		http.Error(w, "session not found", http.StatusNotFound)
 		return
 	}
+
+	if !session.occupied.CompareAndSwap(false, true) {
+		http.Error(w, "session already occupied", http.StatusConflict)
+		return
+	}
+	defer session.occupied.Store(false)
 
 	christmasSession, err := christmasd.SessionUpgrade(w, r, christmasd.ServerOpts{
 		LEDController: (*sessionLEDController)(session),
@@ -106,6 +133,7 @@ func (m *sessionsHandler) handleSessionWS(w http.ResponseWriter, r *http.Request
 
 	m.logger.Info(
 		"session has been connected to a new websocket",
+		"addr", r.RemoteAddr,
 		"token", token)
 
 	ctx, cancel := context.WithCancel(r.Context())
@@ -141,6 +169,7 @@ func (m *sessionsHandler) handleSessionWS(w http.ResponseWriter, r *http.Request
 
 	m.logger.Info(
 		"session has been disconnected from websocket",
+		"addr", r.RemoteAddr,
 		"token", token)
 }
 
@@ -164,6 +193,8 @@ type sessionInstance struct {
 	canvas   *leddraw.LEDCanvas
 	buffer   leddraw.LEDStrip
 	rctx     context.Context
+
+	occupied atomic.Bool
 }
 
 type sessionLEDController sessionInstance

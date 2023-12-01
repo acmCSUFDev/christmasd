@@ -26,8 +26,8 @@ session.once("init", (ev) => {
   session.on("frame", (ev) => {
     tree.draw(ev.led_colors);
   });
-  session.on("error", (ev) => {
-    writeErrorToConsole(`Server error: ${ev.message}`);
+  session.on("going_away", (ev) => {
+    writeErrorToConsole(`Server is going away, reason: ${ev.reason}`);
   });
 
   writeToConsole("Connected to server!");

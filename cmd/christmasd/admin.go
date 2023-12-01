@@ -8,7 +8,7 @@ import (
 
 	"dev.acmcsuf.com/christmasd"
 	"github.com/go-chi/chi/v5"
-	"github.com/gofrs/uuid"
+	"github.com/gofrs/uuid/v5"
 	"libdb.so/hrt"
 )
 
