@@ -20,7 +20,9 @@ let tree: TreeCanvas;
 
 session.once("init", (ev) => {
   const ledPoints = ev.led_coords;
-  const wsLink = `ws://${location.host}/ws/${ev.session_token}`;
+  const wsScheme = location.protocol === "https:" ? "wss" : "ws";
+  const wsHost = location.host;
+  const wsLink = `${wsScheme}://${wsHost}/ws/${ev.session_token}`;
 
   tree = new TreeCanvas(treeCanvas, ledPoints);
   session.on("frame", (ev) => {
