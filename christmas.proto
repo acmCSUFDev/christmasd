@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package christmas;
+
+option go_package = "libdb.so/acm-christmas/lib/christmas/go/christmaspb";
+
+message LEDClientMessage {
+  oneof message {
+    // Authenticate with the server. Sends back an AuthenticateResponse.
+    // This must be the first message sent to the server, otherwise the
+    // connection is closed.
+    AuthenticateRequest authenticate = 1;
+
+    /* High-level APIs.
+	 * These are the APIs you should use. */
+
+    // Return information about the LED canvas. Sends back a
+    // GetLEDCanvasInfoResponse.
+    // The caller must use this information to determine the size of the image
+    // to send to SetLEDCanvas.
+    GetLEDCanvasInfoRequest get_led_canvas_info = 2;
+    // Set the LED canvas to the given image. For information on the image
+    // format, see the documentation for SetLEDCanvasRequest.
+    SetLEDCanvasRequest set_led_canvas = 3;
+
+    /* Low-level APIs.
+     * Prefer not to use these unless you know what you're doing. */
+
+    // Get the current state of the LEDs. Sends back a GetLEDsResponse.
+    GetLEDsRequest get_leds = 4;
+    // Set all LEDs to the given colors. The number of colors must match the
+    // number of LEDs. Calling this is equivalent to calling DeleteFrames
+    // followed by AddFrames with a single frame.
+    SetLEDsRequest set_leds = 5;
+  }
+}
+
+message LEDServerMessage {
+  oneof message {
+    // Response to AuthenticateRequest.
+    AuthenticateResponse authenticate = 1;
+    // Response to GetLEDCanvasInfoRequest.
+    GetLEDCanvasInfoResponse get_led_canvas_info = 2;
+    // Response to GetLEDsRequest.
+    GetLEDsResponse get_leds = 3;
+  }
+  // If present, the server encountered an error. This is a string describing
+  // the error.
+  optional string error = 100;
+}
+
+message AuthenticateRequest {
+  // The secret to authenticate with. This is given beforehand, make sure you
+  // have one before you try to authenticate.
+  string secret = 1;
+}
+
+message AuthenticateResponse {
+  // Whether the authentication succeeded.
+  bool success = 1;
+}
+
+message GetLEDsRequest {
+}
+
+message GetLEDsResponse {
+  // A 1D array of colors. The number of colors matches the number of LEDs.
+  // Each color is represented as 0xRRGGBB.
+  repeated fixed32 leds = 1;
+}
+
+message SetLEDsRequest {
+  // A 1D array of colors. The number of colors must match the number of LEDs.
+  // Eaech color is represented as 0xRRGGBB.
+  // To get the number of LEDs, call GetLEDs.
+  repeated fixed32 leds = 1;
+}
+
+message GetLEDCanvasInfoRequest {
+}
+
+message GetLEDCanvasInfoResponse {
+  // Width of the LED canvas, in pixels. This is also the stride.
+  uint32 width = 1;
+  // Height of the LED canvas, in pixels.
+  uint32 height = 2;
+}
+
+message SetLEDCanvasRequest {
+  // The pixels to set. The number of pixels must match width * height as
+  // returned by GetLEDCanvasInfo. See RGBAPixels for the format.
+  RGBAPixels pixels = 3;
+}
+
+message RGBAPixels {
+  // A 1D array of pixels, in row-major order. The number of pixels must match
+  // width * height * 4, which is ordered as RGBA.
+  bytes pixels = 1;
+}

@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>christmasd testing page</title>
+<link rel="stylesheet" href="style.css" />
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/sakura.css/css/sakura-dark.css"
+  type="text/css"
+/>
+
+<dialog id="connect-settings">
+  <h1>Connect</h1>
+  <form>
+    <label for="server">Server:</label>
+    <input type="text" id="server" placeholder="ws://localhost:8080" required />
+    <button type="submit">Connect</button>
+  </form>
+</dialog>
+
+<main>
+  <canvas id="tree" width="400" height="400"></canvas>
+  <pre id="console">Connecting to server...</pre>
+</main>
+
+<script src="script.js" type="module"></script>
