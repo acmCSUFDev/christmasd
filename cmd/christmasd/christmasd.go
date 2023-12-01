@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync/atomic"
 
 	"dev.acmcsuf.com/christmas/lib/csvutil"
 	"dev.acmcsuf.com/christmasd"
@@ -17,19 +18,22 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/pflag"
+	"golang.org/x/sync/errgroup"
 	"libdb.so/hserve"
 	"libdb.so/ledctl"
 )
 
 var (
-	httpAddr     = ":8080"
-	ledPointsCSV = "led-points.csv"
-	canvasPPI    = 72.0
-	verbose      = false
+	httpAddr      = "0.0.0.0:9000"
+	httpAdminAddr = "127.0.0.1:9002"
+	ledPointsCSV  = "led-points.csv"
+	canvasPPI     = 72.0
+	verbose       = false
 )
 
 func init() {
 	pflag.StringVarP(&httpAddr, "http-addr", "a", httpAddr, "HTTP server address")
+	pflag.StringVarP(&httpAdminAddr, "http-admin-addr", "A", httpAdminAddr, "HTTP admin server address")
 	pflag.StringVar(&ledPointsCSV, "led-points", ledPointsCSV, "CSV file of LED points")
 	pflag.Float64Var(&canvasPPI, "canvas-ppi", canvasPPI, "canvas PPI")
 	pflag.BoolVarP(&verbose, "verbose", "v", verbose, "verbose logging")
@@ -96,25 +100,53 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		return fmt.Errorf("failed to create a LED controller: %v", err)
 	}
 
-	serverConfig := christmasd.Config{}
-	server := christmasd.NewServer(serverConfig, christmasd.ServerOpts{
+	server := christmasd.NewServer(christmasd.ServerOpts{
 		LEDController: controller,
 		Logger:        logger.With("component", "server"),
 	})
 
-	admin := newAdminHandler(server)
+	token := atomic.Pointer[string]{}
 
-	r := chi.NewRouter()
-	r.Handle("/ws", server)
-	r.Mount("/admin", admin)
+	errg, ctx := errgroup.WithContext(ctx)
+	errg.Go(func() error {
+		r := chi.NewRouter()
+		r.Get("/ws/{token}", func(w http.ResponseWriter, r *http.Request) {
+			tokenWant := token.Load()
+			token := chi.URLParam(r, "token")
+			if tokenWant != nil {
+				if token != *tokenWant {
+					http.Error(w, "invalid token", http.StatusForbidden)
+					return
+				}
+			}
 
-	r.Get("/led-points.csv", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/csv")
-		w.Header().Set("Content-Disposition", "attachment; filename=led-points.csv")
+			server.ServeHTTP(w, r)
+		})
 
-		csvw := csv.NewWriter(w)
-		csvutil.Marshal(csvw, ledCoords)
+		r.Get("/led-points.csv", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/csv")
+			w.Header().Set("Content-Disposition", "attachment; filename=led-points.csv")
+
+			csvw := csv.NewWriter(w)
+			csvutil.Marshal(csvw, ledCoords)
+		})
+
+		logger.Info(
+			"starting public HTTP server",
+			"addr", httpAddr)
+
+		return hserve.ListenAndServe(ctx, httpAddr, r)
 	})
 
-	return hserve.ListenAndServe(ctx, httpAddr, r)
+	errg.Go(func() error {
+		admin := newAdminHandler(server, &token)
+
+		logger.Info(
+			"starting admin HTTP server",
+			"addr", httpAdminAddr)
+
+		return hserve.ListenAndServe(ctx, httpAdminAddr, admin)
+	})
+
+	return errg.Wait()
 }

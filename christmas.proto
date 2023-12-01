@@ -6,11 +6,6 @@ option go_package = "libdb.so/acm-christmas/lib/christmas/go/christmaspb";
 
 message LEDClientMessage {
   oneof message {
-    // Authenticate with the server. Sends back an AuthenticateResponse.
-    // This must be the first message sent to the server, otherwise the
-    // connection is closed.
-    AuthenticateRequest authenticate = 1;
-
     /* High-level APIs.
 	 * These are the APIs you should use. */
 
@@ -37,8 +32,6 @@ message LEDClientMessage {
 
 message LEDServerMessage {
   oneof message {
-    // Response to AuthenticateRequest.
-    AuthenticateResponse authenticate = 1;
     // Response to GetLEDCanvasInfoRequest.
     GetLEDCanvasInfoResponse get_led_canvas_info = 2;
     // Response to GetLEDsRequest.
@@ -47,17 +40,6 @@ message LEDServerMessage {
   // If present, the server encountered an error. This is a string describing
   // the error.
   optional string error = 100;
-}
-
-message AuthenticateRequest {
-  // The secret to authenticate with. This is given beforehand, make sure you
-  // have one before you try to authenticate.
-  string secret = 1;
-}
-
-message AuthenticateResponse {
-  // Whether the authentication succeeded.
-  bool success = 1;
 }
 
 message GetLEDsRequest {

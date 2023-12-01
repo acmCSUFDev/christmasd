@@ -6,11 +6,9 @@ import (
 	"image"
 	"log/slog"
 	"net/http"
-	"sync/atomic"
-	"time"
 
-	"dev.acmcsuf.com/christmasd/christmaspb"
 	"dev.acmcsuf.com/christmas/lib/xcolor"
+	"dev.acmcsuf.com/christmasd/christmaspb"
 	"github.com/gobwas/ws"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/typ.v4/sync2"
@@ -18,13 +16,6 @@ import (
 
 //go:generate mkdir -p christmaspb
 //go:generate protoc -I=. --go_out=paths=source_relative:./christmaspb christmas.proto
-
-// Config is the configuration for handling.
-type Config struct {
-	// Secret is the secret to use for the server.
-	// The secret is used to authenticate the client.
-	Secret string
-}
 
 // ServerOpts are options for a server.
 type ServerOpts struct {
@@ -39,7 +30,6 @@ type ServerOpts struct {
 // Server handles all HTTP requests for the server.
 type Server struct {
 	opts        ServerOpts
-	cfg         atomic.Pointer[Config]
 	connections sync2.Map[*Session, sessionControl]
 }
 
@@ -48,12 +38,10 @@ type sessionControl struct {
 }
 
 // NewServer creates a new server.
-func NewServer(cfg Config, opts ServerOpts) *Server {
-	s := &Server{
+func NewServer(opts ServerOpts) *Server {
+	return &Server{
 		opts: opts,
 	}
-	s.cfg.Store(&cfg)
-	return s
 }
 
 // KickAllConnections kicks all connections from the server.
@@ -72,16 +60,9 @@ func (s *Server) KickAllConnections(reason string) {
 	})
 }
 
-// SetConfig sets the configuration for the server. All future connections will
-// use the new configuration. Existing connections will continue to use the old
-// configuration, unless they are kicked out.
-func (s *Server) SetConfig(cfg Config) {
-	s.cfg.Store(&cfg)
-}
-
 // ServeHTTP implements http.Handler.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session, err := SessionUpgrade(w, r, *s.cfg.Load(), s.opts)
+	session, err := SessionUpgrade(w, r, s.opts)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -103,13 +84,10 @@ type Session struct {
 	ws     *websocketServer
 	logger *slog.Logger
 	opts   ServerOpts
-	cfg    Config
-
-	state atomic.Uint32
 }
 
 // SessionUpgrade upgrades an HTTP request to a websocket session.
-func SessionUpgrade(w http.ResponseWriter, r *http.Request, cfg Config, opts ServerOpts) (*Session, error) {
+func SessionUpgrade(w http.ResponseWriter, r *http.Request, opts ServerOpts) (*Session, error) {
 	wsconn, _, _, err := opts.HTTPUpgrader.Upgrade(r, w)
 	if err != nil {
 		return nil, fmt.Errorf("failed to upgrade HTTP: %w", err)
@@ -121,7 +99,6 @@ func SessionUpgrade(w http.ResponseWriter, r *http.Request, cfg Config, opts Ser
 		ws:     newWebsocketServer(wsconn, logger),
 		logger: logger,
 		opts:   opts,
-		cfg:    cfg,
 	}, nil
 }
 
@@ -148,18 +125,6 @@ func (s *Session) Start(ctx context.Context) error {
 	return errg.Wait()
 }
 
-var (
-	errNotAuthenticated = fmt.Errorf("not authenticated")
-	errInvalidSecret    = fmt.Errorf("invalid secret")
-)
-
-type sessionState = uint32
-
-const (
-	stateInitial sessionState = iota
-	stateAuthenticated
-)
-
 func (s *Session) mainLoop(ctx context.Context) error {
 	bufPbLED := make([]uint32, len(s.opts.LEDController.LEDs()))
 	bufCtLED := make([]xcolor.RGB, len(s.opts.LEDController.LEDs()))
@@ -170,43 +135,6 @@ func (s *Session) mainLoop(ctx context.Context) error {
 			return nil
 
 		case msg := <-s.ws.Messages:
-			if auth := msg.GetAuthenticate(); auth != nil {
-				if auth.Secret != s.cfg.Secret {
-					ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-					defer cancel()
-
-					s.ws.Send(ctx, &christmaspb.LEDServerMessage{
-						Message: &christmaspb.LEDServerMessage_Authenticate{
-							Authenticate: &christmaspb.AuthenticateResponse{
-								Success: false,
-							},
-						},
-					})
-
-					return errInvalidSecret
-				}
-
-				if !s.state.CompareAndSwap(stateInitial, stateAuthenticated) {
-					return fmt.Errorf("already authenticated")
-				}
-
-				s.ws.Send(ctx, &christmaspb.LEDServerMessage{
-					Message: &christmaspb.LEDServerMessage_Authenticate{
-						Authenticate: &christmaspb.AuthenticateResponse{
-							Success: true,
-						},
-					},
-				})
-
-				s.logger.DebugContext(ctx,
-					"new client authenticated")
-				continue
-			}
-
-			if s.state.Load() != stateAuthenticated {
-				return errNotAuthenticated
-			}
-
 			switch msg := msg.GetMessage().(type) {
 			case *christmaspb.LEDClientMessage_GetLeds:
 				ctLEDs := s.opts.LEDController.LEDs()
