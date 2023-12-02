@@ -122,6 +122,7 @@ class ControllerSession extends EventEmitter {
         this.sse = new EventSource("/session");
         this.sse.addEventListener("init", (ev)=>this.emit("init", JSON.parse(ev.data)));
         this.sse.addEventListener("frame", (ev)=>this.emit("frame", JSON.parse(ev.data)));
+        this.sse.addEventListener("going_away", (ev)=>this.emit("going_away", JSON.parse(ev.data)));
     }
 }
 class TreeCanvas {
@@ -152,7 +153,6 @@ class TreeCanvas {
         this.redraw();
     }
     draw(colors) {
-        console.log("drawing", colors);
         this.colors = colors;
         this.redraw();
     }
@@ -181,13 +181,15 @@ const session = new ControllerSession();
 let tree;
 session.once("init", (ev)=>{
     const ledPoints = ev.led_coords;
-    const wsLink = `ws://${location.host}/ws/${ev.session_token}`;
+    const wsScheme = location.protocol === "https:" ? "wss" : "ws";
+    const wsHost = location.host;
+    const wsLink = `${wsScheme}://${wsHost}/ws/${ev.session_token}`;
     tree = new TreeCanvas(treeCanvas, ledPoints);
     session.on("frame", (ev)=>{
         tree.draw(ev.led_colors);
     });
-    session.on("error", (ev)=>{
-        writeErrorToConsole(`Server error: ${ev.message}`);
+    session.on("going_away", (ev)=>{
+        writeErrorToConsole(`Server is going away, reason: ${ev.reason}`);
     });
     writeToConsole("Connected to server!");
     const a = document.createElement("a");
