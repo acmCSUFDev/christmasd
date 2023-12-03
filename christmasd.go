@@ -125,6 +125,8 @@ func (s *Session) Start(ctx context.Context) error {
 	return errg.Wait()
 }
 
+var errInternalServer = fmt.Errorf("internal server error")
+
 func (s *Session) mainLoop(ctx context.Context) error {
 	bufPbLED := make([]uint32, len(s.opts.LEDController.LEDs()))
 	bufCtLED := make([]xcolor.RGB, len(s.opts.LEDController.LEDs()))
@@ -158,7 +160,10 @@ func (s *Session) mainLoop(ctx context.Context) error {
 					bufCtLED[i] = xcolor.RGBFromUint(led)
 				}
 				if err := s.opts.LEDController.SetLEDs(bufCtLED); err != nil {
-					return fmt.Errorf("failed to set LEDs: %w", err)
+					s.logger.Error(
+						"failed to set LEDs",
+						"err", err)
+					return errInternalServer
 				}
 
 			case *christmaspb.LEDClientMessage_GetLedCanvasInfo:
@@ -183,7 +188,10 @@ func (s *Session) mainLoop(ctx context.Context) error {
 					return fmt.Errorf("invalid image size")
 				}
 				if err := s.opts.LEDController.DrawImage(&img); err != nil {
-					return fmt.Errorf("failed to draw image: %w", err)
+					s.logger.Error(
+						"failed to draw image",
+						"err", err)
+					return errInternalServer
 				}
 			}
 		}
