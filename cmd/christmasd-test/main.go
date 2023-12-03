@@ -31,8 +31,8 @@ var frontendFilesFS, _ = fs.Sub(frontendFS, "frontend")
 var (
 	httpAddr      = ":9001"
 	ledPointsCSV  = "led-points.csv"
-	maxSessions   = 200
-	maxSessionTTL = 15 * time.Minute
+	maxSessions   = 500
+	maxSessionTTL = 3 * time.Hour
 	canvasPPI     = 72.0
 	verbose       = false
 )
