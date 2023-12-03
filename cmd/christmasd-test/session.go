@@ -80,6 +80,8 @@ frameLoop:
 				reason = "client closed connection"
 			case errors.Is(err, context.DeadlineExceeded):
 				reason = "session timed out, please reconnect"
+			default:
+				reason = "server error occurred, please reconnect"
 			}
 			writeSSE(wflush, controllerEventSSE(ControllerGoingAway{
 				Reason: reason,

@@ -13,7 +13,6 @@ export class TreeCanvas {
     canvas: HTMLCanvasElement,
     ledPoints: Point[],
   ) {
-    this.colors = Array(ledPoints.length).fill("#FFFFFF");
     this.canvas = canvas.getContext("2d");
     this.canvasWidth = canvas.width;
     this.canvasHeight = canvas.height;
@@ -35,6 +34,11 @@ export class TreeCanvas {
       Y: (p.Y - ledMinY) * this.ledScale + ledOffsetY,
     }));
 
+    this.clear();
+  }
+
+  clear() {
+    this.colors = Array(this.ledPoints.length).fill("#FFFFFF");
     this.redraw();
   }
 

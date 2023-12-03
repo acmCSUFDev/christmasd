@@ -34,3 +34,7 @@ body * {
 .ws-link a {
   border-bottom: 1px dashed gray;
 }
+
+.error {
+  color: red;
+}
