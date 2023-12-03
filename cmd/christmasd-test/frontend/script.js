@@ -157,6 +157,7 @@ class TreeCanvas {
         this.redraw();
     }
     redraw() {
+        this.canvas.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
         for (const [i, color] of this.colors.entries()){
             const { X, Y } = this.ledPoints[i];
             this.canvas.beginPath();
