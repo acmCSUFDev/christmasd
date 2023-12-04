@@ -1,5 +1,5 @@
-dev.acmcsuf.com/christmas v0.0.0-20231201015142-6c69b334c883 h1:I40URX7s7c0tXAsfttGHaBjwr1EhUNfb3VWOJSSC3jg=
-dev.acmcsuf.com/christmas v0.0.0-20231201015142-6c69b334c883/go.mod h1:iJLxgeic+RSXayUI4YIWZLNMHXWAYH/fdfM2M2fYnkE=
+dev.acmcsuf.com/christmas v0.0.0-20231204120811-7bf76dc5e834 h1:n6PtV1Lt8lq5QRk7joXfwSzpEjOtqUDv3/gjoCkBi5M=
+dev.acmcsuf.com/christmas v0.0.0-20231204120811-7bf76dc5e834/go.mod h1:iJLxgeic+RSXayUI4YIWZLNMHXWAYH/fdfM2M2fYnkE=
 github.com/Jon-Bright/ledctl v0.0.0-20220811175751-98f2a0ba0a4b h1:u0+8Yyo6gZuZyHDFnuWcwme5bWwJk9p4Bi+M7YO3HH0=
 github.com/Jon-Bright/ledctl v0.0.0-20220811175751-98f2a0ba0a4b/go.mod h1:YnJVnKYzGnL9rQUfQHAfN8FVtKF5C1IPPmdsEcKWhAM=
 github.com/alecthomas/assert/v2 v2.3.0 h1:mAsH2wmvjsuvyBvAmCtm7zFsBlb8mIHx5ySLVdDZXL0=

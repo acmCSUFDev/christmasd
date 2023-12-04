@@ -3,7 +3,7 @@ module dev.acmcsuf.com/christmasd
 go 1.21.4
 
 require (
-	dev.acmcsuf.com/christmas v0.0.0-20231201015142-6c69b334c883
+	dev.acmcsuf.com/christmas v0.0.0-20231204120811-7bf76dc5e834
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/gobwas/ws v1.3.1
 	github.com/gofrs/uuid/v5 v5.0.0
