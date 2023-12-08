@@ -76,6 +76,8 @@ func main() {
 }
 
 func run(ctx context.Context, logger *slog.Logger) error {
+	errg, ctx := errgroup.WithContext(ctx)
+
 	ledCoords, err := csvutil.UnmarshalFile[image.Point](ledPointsCSV)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal CSV file %q: %v", ledPointsCSV, err)
@@ -100,6 +102,11 @@ func run(ctx context.Context, logger *slog.Logger) error {
 		return fmt.Errorf("failed to create a LED controller: %v", err)
 	}
 
+	errg.Go(func() error {
+		controller.start(ctx)
+		return nil
+	})
+
 	server := christmasd.NewServer(christmasd.ServerOpts{
 		LEDController: controller,
 		Logger:        logger.With("component", "server"),
@@ -107,7 +114,6 @@ func run(ctx context.Context, logger *slog.Logger) error {
 
 	token := atomic.Pointer[string]{}
 
-	errg, ctx := errgroup.WithContext(ctx)
 	errg.Go(func() error {
 		r := chi.NewRouter()
 		r.Get("/ws/{token}", func(w http.ResponseWriter, r *http.Request) {
