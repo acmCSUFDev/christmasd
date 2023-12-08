@@ -120,7 +120,17 @@ func run(ctx context.Context, logger *slog.Logger) error {
 				}
 			}
 
+			logger.Debug(
+				"now serving a WebSocket connection",
+				"remote_addr", r.RemoteAddr,
+				"token", token)
+
 			server.ServeHTTP(w, r)
+
+			logger.Debug(
+				"finished serving a WebSocket connection",
+				"remote_addr", r.RemoteAddr,
+				"token", token)
 		})
 
 		r.Get("/led-points.csv", func(w http.ResponseWriter, r *http.Request) {

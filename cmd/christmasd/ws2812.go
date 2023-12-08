@@ -74,6 +74,9 @@ func (c *ledController) start(ctx context.Context) {
 			drawCh = nil
 		}
 
+		c.logger.Debug(
+			"flushing LED strip")
+
 		c.ctrlMu.Lock()
 		if err := c.ctrl.Flush(); err != nil {
 			c.logger.Error(
@@ -106,9 +109,15 @@ func (c *ledController) ImageSize() (w, h int) {
 }
 
 func (c *ledController) DrawImage(img *image.RGBA) error {
+	c.logger.Debug(
+		"beginning image render",
+		"width", img.Bounds().Dx(),
+		"height", img.Bounds().Dy())
 	if err := c.canvas.Render(img); err != nil {
 		return fmt.Errorf("failed to render image: %v", err)
 	}
+	c.logger.Debug(
+		"image render complete")
 	return c.SetLEDs(c.canvas.LEDs())
 }
 
