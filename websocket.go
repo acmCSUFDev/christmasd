@@ -9,11 +9,11 @@ import (
 	"log/slog"
 	"time"
 
+	"dev.acmcsuf.com/christmasd/christmaspb"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
-	"dev.acmcsuf.com/christmasd/christmaspb"
 )
 
 type closeFrame struct {
@@ -123,9 +123,9 @@ func (s *websocketServer) Start(ctx context.Context) error {
 				return err
 			}
 
-			s.logger.DebugContext(ctx,
-				"received message from client",
-				"message", msg.String())
+			// s.logger.DebugContext(ctx,
+			// 	"received message from client",
+			// 	"message", msg.String())
 
 			select {
 			case <-ctx.Done():
