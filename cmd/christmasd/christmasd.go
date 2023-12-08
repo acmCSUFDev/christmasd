@@ -28,6 +28,7 @@ var (
 	httpAdminAddr = "127.0.0.1:9002"
 	ledPointsCSV  = "led-points.csv"
 	canvasPPI     = 72.0
+	frameRate     = 20
 	verbose       = false
 )
 
@@ -36,10 +37,9 @@ func init() {
 	pflag.StringVarP(&httpAdminAddr, "http-admin-addr", "A", httpAdminAddr, "HTTP admin server address")
 	pflag.StringVar(&ledPointsCSV, "led-points", ledPointsCSV, "CSV file of LED points")
 	pflag.Float64Var(&canvasPPI, "canvas-ppi", canvasPPI, "canvas PPI")
+	pflag.IntVar(&frameRate, "fps", frameRate, "frame rate")
 	pflag.BoolVarP(&verbose, "verbose", "v", verbose, "verbose logging")
 }
-
-const frameRate = 20
 
 var ws281xConfig = ledctl.WS281xConfig{
 	ColorOrder:   ledctl.BGROrder,

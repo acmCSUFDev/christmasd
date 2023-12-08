@@ -58,24 +58,33 @@ func newLEDController(cfg ledControlConfig) (*ledController, error) {
 }
 
 func (c *ledController) start(ctx context.Context) {
-	drawCh := c.drawCh
-
 	frameTicker := time.NewTicker(time.Second / time.Duration(c.cfg.FrameRate))
 	defer frameTicker.Stop()
+
+	drawCh := c.drawCh
+	frameTick := frameTicker.C
 
 	for {
 		select {
 		case <-ctx.Done():
+			c.logger.Debug(
+				"stopping LED controller")
 			return
-		case <-frameTicker.C:
+		case <-frameTick:
 			drawCh = c.drawCh
+			frameTick = nil
+
+			c.logger.Debug(
+				"frame timer reset")
+
 			continue
 		case <-drawCh:
 			drawCh = nil
-		}
+			frameTick = frameTicker.C
 
-		c.logger.Debug(
-			"flushing LED strip")
+			c.logger.Debug(
+				"flushing LED strip")
+		}
 
 		c.ctrlMu.Lock()
 		if err := c.ctrl.Flush(); err != nil {
