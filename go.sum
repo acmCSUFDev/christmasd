@@ -53,3 +53,5 @@ libdb.so/hserve v0.0.0-20230404043009-95e112a6e0a5 h1:EoO8WHF7uWQuvqBRgnt0wsvG9u
 libdb.so/hserve v0.0.0-20230404043009-95e112a6e0a5/go.mod h1:ZGoXSA4bL8Czb67YFYN3Uiy7Hvind5RhMSQgU6k4sq8=
 libdb.so/ledctl v0.0.0-20231130111553-25f5f20677f5 h1:aaxpbuDEFXg6f4W2R4vehCgXFuHgBNT4IHOARQ49P2M=
 libdb.so/ledctl v0.0.0-20231130111553-25f5f20677f5/go.mod h1:slhFBGUfszv/aR8zzeY6m0DxiqVxEi82T8gW4OJAkzw=
+libdb.so/ledctl v0.0.0-20231212211902-0219900e612a h1:J+zriHpbVjoxS3DWc+xSXR+VIGdRn2Wuhno2BtCP+a8=
+libdb.so/ledctl v0.0.0-20231212211902-0219900e612a/go.mod h1:slhFBGUfszv/aR8zzeY6m0DxiqVxEi82T8gW4OJAkzw=

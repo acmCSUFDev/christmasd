@@ -17,7 +17,7 @@ require (
 	gopkg.in/typ.v4 v4.3.0
 	libdb.so/hrt v0.0.0-20230610032842-abf58de78776
 	libdb.so/hserve v0.0.0-20230404043009-95e112a6e0a5
-	libdb.so/ledctl v0.0.0-20231130111553-25f5f20677f5
+	libdb.so/ledctl v0.0.0-20231212211902-0219900e612a
 )
 
 require (
