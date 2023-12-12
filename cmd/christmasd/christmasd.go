@@ -30,6 +30,7 @@ var (
 	canvasPPI     = 72.0
 	frameRate     = 20
 	verbose       = false
+	defaultToken  = ""
 )
 
 func init() {
@@ -39,6 +40,7 @@ func init() {
 	pflag.Float64Var(&canvasPPI, "canvas-ppi", canvasPPI, "canvas PPI")
 	pflag.IntVar(&frameRate, "fps", frameRate, "frame rate")
 	pflag.BoolVarP(&verbose, "verbose", "v", verbose, "verbose logging")
+	pflag.StringVar(&defaultToken, "token", defaultToken, "default token")
 }
 
 var ws281xConfig = ledctl.WS281xConfig{
@@ -113,6 +115,7 @@ func run(ctx context.Context, logger *slog.Logger) error {
 	})
 
 	token := atomic.Pointer[string]{}
+	token.Store(&defaultToken)
 
 	errg.Go(func() error {
 		r := chi.NewRouter()
